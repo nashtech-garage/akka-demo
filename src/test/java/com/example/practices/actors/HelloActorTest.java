@@ -33,7 +33,7 @@ public class HelloActorTest {
         final Props props = Props.create(HelloActor.class);
         final ActorRef helloActorRef = getSystem().actorOf(props, "hello-world");
 
-        helloActorRef.tell(new HelloActor.StartMessage(), getRef());
+        helloActorRef.tell(new HelloActor.StartMessage() {}, getRef());
 
         var helloMessage = Hello.builder().id(UUID.randomUUID()).message("Hello world").build();
         var replyMessage = helloMessage.withMessage("Hi there");
