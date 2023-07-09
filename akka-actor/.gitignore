@@ -26,8 +26,4 @@ replay_pid*
 .idea
 build
 .vscode
-.settings
-.project
-.classpath
-target
 
