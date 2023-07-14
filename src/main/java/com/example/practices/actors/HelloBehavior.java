@@ -25,11 +25,12 @@ public class HelloBehavior extends AbstractBehavior<Message> {
     log.info("New Actor is spawned: {}", this.getContext().getSelf().path());
   }
 
+  /**
+   * Create a Hello Behavior
+   * @return HelloBehavior
+   */
   public static Behavior<Message> create() {
     return Behaviors.setup(HelloBehavior::new);
-  }
-  private String name() {
-    return this.getContext().getSelf().path().name();
   }
 
   private String path() {
