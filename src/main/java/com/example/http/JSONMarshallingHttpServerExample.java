@@ -1,0 +1,105 @@
+package com.example.http;
+
+import akka.Done;
+import akka.actor.typed.ActorSystem;
+import akka.actor.typed.javadsl.Behaviors;
+import akka.http.javadsl.Http;
+import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.marshallers.jackson.Jackson;
+import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.AllDirectives;
+import akka.http.javadsl.server.Route;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import static akka.http.javadsl.server.PathMatchers.longSegment;
+
+public class JSONMarshallingHttpServerExample extends AllDirectives {
+
+    public static void main(String[] args) throws Exception {
+        // boot up server using the route as defined below
+        ActorSystem<Void> system = ActorSystem.create(Behaviors.empty(), "routes");
+        final Http http = Http.get(system);
+
+        // In order to access all directives we need an instance where the routes are define.
+        JSONMarshallingHttpServerExample app = new JSONMarshallingHttpServerExample();
+
+        final CompletionStage<ServerBinding> binding = http.newServerAt("localhost", 8080).bind(app.createRoute());
+
+        System.out.println("Server online at http://localhost:8080/\nPress RETURN to stop...");
+        System.in.read(); // let it run until user presses return
+
+        // trigger unbinding from the port // and shutdown when done
+        binding.thenCompose(ServerBinding::unbind).thenAccept(unbound -> system.terminate());
+    }
+
+    // (fake) async database query api
+    private CompletionStage<Optional<Item>> fetchItem(long itemId) {
+        return CompletableFuture.completedFuture(Optional.of(new Item("foo", itemId)));
+    }
+
+    // (fake) async database query api
+    private CompletionStage<Done> saveOrder(final Order order) {
+        return CompletableFuture.completedFuture(Done.getInstance());
+    }
+
+    private Route createRoute() {
+        return concat(
+                get(() -> pathPrefix("item", () ->
+                                path(longSegment(), (Long id) -> {
+                                    final CompletionStage<Optional<Item>> futureMaybeItem = fetchItem(id);
+                                    return onSuccess(futureMaybeItem, maybeItem ->
+                                            maybeItem.map(item -> completeOK(item, Jackson.marshaller()))
+                                                    .orElseGet(() -> complete(StatusCodes.NOT_FOUND, "Not Found"))
+                                    );
+                                }))),
+                post(() -> path("create-order", () ->
+                                entity(Jackson.unmarshaller(Order.class), order -> {
+                                    CompletionStage<Done> futureSaved = saveOrder(order);
+                                    return onSuccess(futureSaved, done ->
+                                            complete("order created")
+                                    );
+                                })))
+        );
+    }
+
+    private static class Item {
+
+        final String name;
+        final long id;
+
+        @JsonCreator
+        Item(@JsonProperty("name") String name, @JsonProperty("id") long id) {
+            this.name = name;
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public long getId() {
+            return id;
+        }
+    }
+
+    private static class Order {
+
+        final List<Item> items;
+
+        @JsonCreator
+        Order(@JsonProperty("items") List<Item> items) {
+            this.items = items;
+        }
+
+        public List<Item> getItems() {
+            return items;
+        }
+    }
+
+}

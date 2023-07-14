@@ -1,4 +1,4 @@
-package com.example;
+package com.example.app;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
@@ -15,7 +15,7 @@ import java.util.*;
 public class UserRegistry extends AbstractBehavior<UserRegistry.Command>  {
 
   // actor protocol
-  interface Command {}
+  public interface Command {}
 
   public final static class GetUsers implements Command {
     public final ActorRef<Users> replyTo;

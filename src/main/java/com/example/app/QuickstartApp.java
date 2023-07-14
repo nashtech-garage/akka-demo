@@ -1,4 +1,4 @@
-package com.example;
+package com.example.app;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletionStage;
